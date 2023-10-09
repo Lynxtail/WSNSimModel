@@ -49,6 +49,9 @@ def main():
     # и типа очередей
     g = qt.adjacency2graph(theta, edge_type=edge_list)
     
+    # функции обслуживания
+    service_functions = [lambda t : ser_f(t, mu) for mu in mu_]
+
     # классы систем (источник + узлы)
     # и их параметры
     q_classes = {1: qt.QueueServer, 2: qt.QueueServer}
@@ -63,7 +66,7 @@ def main():
             'service_f': lambda t, mu_i : t + np.random.exponential(1 / mu_i)
             } 
         }
-        for i, mu_i in zip(range(1, L + 1), mu))
+        for i in zip(range(1, L + 1), mu))
 
     # создание сети
     qn = qt.QueueNetwork(g=g, q_classes=q_classes, q_args=q_args, seed=13)
@@ -80,11 +83,11 @@ def main():
 
 if __name__ == '__main__':
     L = 8
-    lambda_0 = np.linspace(0.1, 2, 300)
+    lambda_0 = 1.5
     threshold_tau_0 = 10
-    mu = (5, 1.8, 1., 1.7, 1., 1.9, 1.2, 3.1)
-    kappa = (1, 1, 1, 1, 1, 1, 1, 1)
-    alpha = (.01, .02, .04, .03, .01, .02, .04, .03)
+    mu_ = (5, 1.8, 1., 1.7, 1., 1.9, 1.2, 3.1)
+    kappa_ = (1, 1, 1, 1, 1, 1, 1, 1)
+    alpha_ = (.01, .02, .04, .03, .01, .02, .04, .03)
     theta = np.array([
         [0., 0.25, 0., 0., 0.25, 0., 0.25, 0., 0.25],
         [0., 0., 0.5, 0., 0.5, 0., 0., 0., 0.],
