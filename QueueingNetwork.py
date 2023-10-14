@@ -46,9 +46,6 @@ class QueueingNetwork:
                 break
             j += 1
         print(f'\tтребование {demand.id} переходит из {i} в {j}')
-        
-        i_states = self.systems[i].deserialization()
-        j_states = self.systems[j].deserialization()
 
         if i == 0:
             self.systems[j].update_time_states(self.t_now, 1)
@@ -64,8 +61,6 @@ class QueueingNetwork:
             self.systems[j].update_time_states(self.t_now, 1)
             self.systems[j].demands.append(demand)
 
-        self.systems[i].serialization(i_states)
-        self.systems[j].serialization(j_states)
         print(f'\tтребования в {i}: {self.systems[i].current_demands()}')
         print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
 
@@ -108,12 +103,12 @@ class QueueingNetwork:
                     self.t_processes[i] = self.t_max + 1
             
             if not self.indicator:
-                for system in self.systems:
-                    system.continue_time_states(self.t_now, self.t_old)
+                # for system in self.systems:
+                    # system.continue_time_states(self.t_now, self.t_old)
                 # статистика
                 print('------')
                 for i in range(self.L + 1):
-                    print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization()]}')
+                    print(f'Система {i}:\n{[state for state in self.systems[i].deserialization()]}')
                     print(sum(self.systems[i].deserialization()), self.t_max)
                 print('------\n')
                 self.t_old = self.t_now
