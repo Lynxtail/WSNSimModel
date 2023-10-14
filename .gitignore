@@ -1,2 +1,8 @@
 env
 .venv
+system_0.pickle
+system_4.pickle
+system_3.pickle
+system_2.pickle
+system_1.pickle
+__pycache__
