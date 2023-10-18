@@ -19,5 +19,5 @@ if __name__ == '__main__':
     mu = (1.5, 1.3)
     gamma = (.01, .02)
     lambda_0 = 1.
-    nw = QueueingNetwork(10, len(mu), lambda_0, theta, mu, gamma)
+    nw = QueueingNetwork(10**4, len(mu), lambda_0, theta, mu, gamma)
     nw.simulation()

@@ -47,22 +47,15 @@ class QueueingNetwork:
             j += 1
         print(f'\tтребование {demand.id} переходит из {i} в {j}')
 
-        if i == 0:
-            self.systems[j].update_time_states(self.t_now, 1)
-            self.systems[j].demands.append(demand)
-        # если требование выходит из сети
-        elif j == 0:
+        if i != 0:
             self.systems[i].update_time_states(self.t_now, -1)
             self.systems[i].demands.remove(demand)
-            print(f'\tтребование {demand.id} покинуло сеть')
-        else:
-            self.systems[i].update_time_states(self.t_now, -1)
-            self.systems[i].demands.remove(demand)
+            print(f'\tтребования в {i}: {self.systems[i].current_demands()}')
+        if j != 0:
             self.systems[j].update_time_states(self.t_now, 1)
             self.systems[j].demands.append(demand)
-
-        print(f'\tтребования в {i}: {self.systems[i].current_demands()}')
-        print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
+            print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
+    
 
     def simulation(self):
         demand_id = 0
@@ -103,9 +96,9 @@ class QueueingNetwork:
                     self.t_processes[i] = self.t_max + 1
             
             if not self.indicator:
-                # for system in self.systems:
-                    # system.continue_time_states(self.t_now, self.t_old)
                 # статистика
+                for system in self.systems:
+                    system.update_time_states(self.t_now)
                 print('------')
                 for i in range(self.L + 1):
                     print(f'Система {i}:\n{[state for state in self.systems[i].deserialization()]}')
