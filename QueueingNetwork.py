@@ -9,7 +9,7 @@ class QueueingNetwork:
         self.t_max = t_max
         self.L = L
         self.lambda_0 = lambda_0
-        self.theta = theta
+        self.theta = np.copy(theta)
         self.mu = mu
         self.gamma = gamma
         
@@ -24,17 +24,23 @@ class QueueingNetwork:
         self.t_processes[0] = 0
         self.init_systems()
 
+        self.serviced_demands = 0
+        self.sum_life_time = 0
+
     def init_systems(self):
         systems = [QueueingSystem(0, 0, 0, 0)] # источник
         systems[0].serialization([0])
         for system in range(1, self.L + 1):
             systems.append(QueueingSystem(system, 1, self.mu[system - 1], self.gamma[system - 1]))          
             systems[-1].serialization([0])
+            systems[-1].be_destroyed_at = self.t_now + systems[-1].destroy_time()
         self.systems = tuple(systems)
 
     def arrival_time(self):
         return -log(np.random.random()) / self.lambda_0
     
+
+
     def routing(self, i:int, demand:Demand):
         r = np.random.random()
         tmp_sum = 0
@@ -55,6 +61,9 @@ class QueueingNetwork:
             self.systems[j].update_time_states(self.t_now, 1)
             self.systems[j].demands.append(demand)
             print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
+        else:
+            self.serviced_demands += 1
+            self.sum_life_time += self.t_now - demand.arrival
     
 
     def simulation(self):
@@ -94,26 +103,29 @@ class QueueingNetwork:
 {self.systems[i].id}')
                     self.routing(i, self.systems[i].demands[0])
                     self.t_processes[i] = self.t_max + 1
-            
+
+                # выход из строя
+                if self.systems[i].be_destroyed_at == self.t_now:
+                    self.systems[i].state = False
+                    
+
+
             if not self.indicator:
                 # статистика
                 for system in self.systems:
                     system.update_time_states(self.t_now)
                 print('------')
+                print(f'tau = {self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0}')
                 for i in range(self.L + 1):
-                    print(f'Система {i}:\n{[state for state in self.systems[i].deserialization()]}')
-                    print(sum(self.systems[i].deserialization()), self.t_max)
+                    print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization()]}')
                 print('------\n')
                 self.t_old = self.t_now
                 self.t_now = min(self.t_processes)
 
-                
-
-        print()
+        print(f'\ntau = {self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0}')
+        print("p:")
         for i in range(self.L + 1):
-            print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization()]}')
-            print(sum(self.systems[i].deserialization()), self.t_max)
-        print()
+            print(f'\tСистема {i}:\n\t{[state / self.t_max for state in self.systems[i].deserialization()]}\n')
 
 
 
