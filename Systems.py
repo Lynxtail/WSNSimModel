@@ -10,7 +10,10 @@ class QueueingSystem:
         self.mu = mu
         self.gamma = gamma
         self.k = k
+
+        self.be_destroyed_at = 0
         self.state = state # работоспособна
+
         self.service_flag = False # свободна
         self.demands = list()
         self.last_state = 0
