@@ -4,7 +4,3 @@ class Demand:
         self.id = id
         # момент поступления в сеть
         self.arrival = arrival
-        # момент выхода из сети 
-        self.exit = exit
-        # список посещенных узлов сети
-        self.nodes = list()
