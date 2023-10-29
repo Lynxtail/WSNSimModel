@@ -9,7 +9,8 @@ class QueueingNetwork:
         self.t_max = t_max
         self.L = L
         self.lambda_0 = lambda_0
-        self.theta = np.copy(theta)
+        self.theta = theta
+        self.initial_theta = theta
         self.mu = mu
         self.gamma = gamma
         
@@ -39,7 +40,50 @@ class QueueingNetwork:
     def arrival_time(self):
         return -log(np.random.random()) / self.lambda_0
     
+    def change_theta(L:int, theta:np.ndarray, b:tuple) -> np.ndarray:
+        old_theta = np.copy(theta)
+        new_theta = np.copy(old_theta)
+        for m, item in enumerate(b):
+            if item == 0:
+                for i in range(L + 1):
+                    for k in range(L + 1):
+                        if i != m + 1 and k != m + 1:
+                            if old_theta[i][m + 1] != 1:
+                                new_theta[i][k] = old_theta[i][k] / (1 - old_theta[i][m + 1])
+                        elif k != m + 1:
+                            new_theta[m + 1][k] = 0
+                        elif i != m + 1:
+                            new_theta[i][m + 1] = 0
+                new_theta[m + 1][m + 1] = 1
+            old_theta = np.copy(new_theta)
+        return new_theta
 
+    def check_matrix(L:int, theta:np.ndarray) -> bool:
+        excepted = []
+        for i in range(len(theta)):
+            if theta[i][i] == 1: excepted.append(i)
+
+        def dfs(start):
+            for ind, v in enumerate(theta[start] > 0):
+                if v:
+                    visited[start] = True
+                    if not visited[ind]:
+                        print(ind, end=' ')
+                        dfs(ind)
+
+        # flag = True
+        visited = []
+        for i in range(L + 1):
+            if not i in excepted:
+                visited = [False] * (L + 1)
+                for m in excepted:
+                    visited[m] = True
+                if not visited[i]:
+                    print(f'\n\tдля {i}:', end=' ')
+                    dfs(i)
+                    print()
+                    if not all(visited): return False
+        return all(visited) if visited else False
 
     def routing(self, i:int, demand:Demand):
         r = np.random.random()
