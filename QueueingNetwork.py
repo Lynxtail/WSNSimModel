@@ -26,7 +26,10 @@ class QueueingNetwork:
         self.init_systems()
 
         self.serviced_demands = 0
+        self.lost_demands = 0
+        self.total_demands = 0
         self.sum_life_time = 0
+        self.b = [1] * L
 
     def init_systems(self):
         systems = [QueueingSystem(0, 0, 0, 0)] # источник
@@ -109,6 +112,12 @@ class QueueingNetwork:
             self.serviced_demands += 1
             self.sum_life_time += self.t_now - demand.arrival
     
+    def restore(self):
+        self.b = [1] * self.L
+        self.theta = np.copy(self.initial_theta)
+        for system in self.systems:
+            system.be_destroyed_at = self.t_now + system.destroy_time()
+        
 
     def simulation(self):
         demand_id = 0
@@ -123,6 +132,7 @@ class QueueingNetwork:
                 self.t_processes[0] = self.t_now + self.arrival_time()
                 demand_id += 1
                 demand = Demand(demand_id, self.t_now)
+                self.total_demands += 1
                 print(f'\tтребование {demand_id} поступило в сеть')
                 self.routing(0, demand)
 
@@ -151,6 +161,12 @@ class QueueingNetwork:
                 # выход из строя
                 if self.systems[i].be_destroyed_at == self.t_now:
                     self.systems[i].state = False
+                    self.lost_demands += len(self.systems[i].demands)
+                    self.systems[i].demands.clear()
+                    self.b[i] = 0
+                    self.theta = self.change_theta(self.theta, self.b)
+                    if not self.check_matrix(self.theta):
+                        self.restore()
                     
 
 
