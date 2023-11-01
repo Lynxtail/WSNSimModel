@@ -30,6 +30,8 @@ class QueueingNetwork:
         self.total_demands = 0
         self.sum_life_time = 0
         self.b = [1] * L
+        self.count_states = 1
+        self.tau_summarized = 0
 
     def init_systems(self):
         systems = [QueueingSystem(0, 0, 0, 0)] # источник
@@ -175,7 +177,7 @@ class QueueingNetwork:
                 for system in self.systems:
                     system.update_time_states(self.t_now)
                 print('------')
-                print(f'tau = {self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0}')
+                print(f'tau for {self.b} = {self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0}')
                 for i in range(self.L + 1):
                     print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization()]}')
                 print('------\n')
