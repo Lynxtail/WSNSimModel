@@ -35,7 +35,7 @@ class QueueingSystem:
     def current_demands(self):
         return [item.id for item in self.demands]
     
-    def update_time_states(self, t_now:float, modifier:int=0):
+    def update_time_states(self, t_now:float):
         time_states = self.deserialization()
 
         print(f'\tsystem {self.id} last state: {self.last_state}')
@@ -45,21 +45,11 @@ class QueueingSystem:
 
         try:
             time_states[len(self.demands)] += t_now - self.last_state
-            # time_states[len(self.demands)] += t_now - time_states[self.last_state]
         except IndexError:
             print(self.id, time_states, len(self.demands), self.last_state)
             raise IndexError
         
-        # if len(self.demands) != self.last_state:
-        #     self.last_state += modifier
         self.last_state = t_now
 
-        self.serialization(time_states)
-    
-    def continue_time_states(self, t_now:float, t_old:float):
-        time_states = self.deserialization()
-        if len(time_states) <= len(self.demands) + 1:
-                time_states.extend([0, 0])
-        time_states[len(self.demands)] += t_now - t_old
         self.serialization(time_states)
 
