@@ -4,12 +4,13 @@ from numpy import random
 from Demand import Demand
 
 class QueueingSystem:
-    def __init__(self, id:int, server_cnt:int, mu:float, gamma:float, state:bool=True, k:int=1) -> None:
+    def __init__(self, id:int, server_cnt:int, mu:float, gamma:float, state:bool=True, k_mu:int=1, k_gamma:int=1) -> None:
         self.id = id
         self.server_cnt = server_cnt
         self.mu = mu
+        self.k_mu = k_mu
         self.gamma = gamma
-        self.k = k
+        self.k_gamma = k_gamma
 
         self.be_destroyed_at = 0
         self.state = state # работоспособна
@@ -19,16 +20,16 @@ class QueueingSystem:
         self.last_state = 0
     
     def service_time(self):
-        return -log(prod([random.random() for _ in range(self.k)])) / self.mu
+        return -log(prod([random.random() for _ in range(self.k_mu)])) / self.mu
     
     def destroy_time(self):
-        return -log(random.random()) / self.gamma
-    
-    def serialization(self, time_states:list()):
+        return -log(prod([random.random() for _ in range(self.k_gamma)])) / self.gamma
+
+    def serialization_time_states(self, time_states:list()):
         with open(f'system_{self.id}.pickle', 'wb') as f:
             pickle.dump(time_states, f)
     
-    def deserialization(self):
+    def deserialization_time_states(self):
         with open(f'system_{self.id}.pickle', 'rb') as f:
             return pickle.load(f)
         
@@ -36,9 +37,9 @@ class QueueingSystem:
         return [item.id for item in self.demands]
     
     def update_time_states(self, t_now:float):
-        time_states = self.deserialization()
+        time_states = self.deserialization_time_states()
 
-        print(f'\tsystem {self.id} last state: {self.last_state}')
+        # print(f'\tsystem {self.id} last state: {self.last_state}')
 
         if len(time_states) <= len(self.demands) + 1:
             time_states.extend([0])
@@ -51,5 +52,5 @@ class QueueingSystem:
         
         self.last_state = t_now
 
-        self.serialization(time_states)
+        self.serialization_time_states(time_states)
 

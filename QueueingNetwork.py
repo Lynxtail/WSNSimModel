@@ -38,10 +38,10 @@ class QueueingNetwork:
 
     def init_systems(self):
         systems = [QueueingSystem(0, 0, 0, 0)] # источник
-        systems[0].serialization([0])
+        systems[0].serialization_time_states([0])
         for system in range(1, self.L + 1):
             systems.append(QueueingSystem(system, 1, self.mu[system - 1], self.gamma[system - 1]))          
-            systems[-1].serialization([0])
+            systems[-1].serialization_time_states([0])
             systems[-1].be_destroyed_at = self.t_now + systems[-1].destroy_time()
             # print(systems[-1].be_destroyed_at)
         self.systems = tuple(systems)
@@ -98,7 +98,7 @@ class QueueingNetwork:
         r = np.random.random()
         tmp_sum = 0
         j = 0
-        while True:
+        while j < self.L:
             if self.theta[i][j] > 0:
                 tmp_sum += self.theta[i][j]
             if tmp_sum >= r:
@@ -130,7 +130,7 @@ class QueueingNetwork:
         demand_id = 0
         while self.t_now < self.t_max:
             print(f'{self.t_now}')
-            # [print(f'{system.id}\n\t{system.time_states}\n\t{len(system.demands)}') for system in self.systems]
+            [print(f'{system.id}\n\t{system.deserialization_time_states()}\n\t{len(system.demands)}') for system in self.systems]
             self.indicator = False
 
             # генерация требования
@@ -140,7 +140,7 @@ class QueueingNetwork:
                 demand_id += 1
                 demand = Demand(demand_id, self.t_now)
                 self.total_demands += 1
-                # print(f'\tтребование {demand_id} поступило в сеть')
+                print(f'\tтребование {demand_id} поступило в сеть')
                 self.routing(0, demand)
 
             for i in range(1, self.L + 1):
@@ -149,19 +149,19 @@ class QueueingNetwork:
                     self.indicator = True
                     self.systems[i].service_flag = True
                     self.t_processes[i] = self.t_now + self.systems[i].service_time()
-#                     print(f'\tтребование \
-# {self.systems[i].demands[0].id} \
-# начало обслуживаться в системе \
-# {self.systems[i].id}')
+                    print(f'\tтребование \
+{self.systems[i].demands[0].id} \
+начало обслуживаться в системе \
+{self.systems[i].id}')
 
                 # завершение обслуживания
                 if self.t_processes[i] == self.t_now:
                     self.indicator = True
                     self.systems[i].service_flag = False
-#                     print(f'\tтребование \
-# {self.systems[i].demands[0].id} \
-# закончило обслуживаться в системе \
-# {self.systems[i].id}')
+                    print(f'\tтребование \
+{self.systems[i].demands[0].id} \
+закончило обслуживаться в системе \
+{self.systems[i].id}')
                     self.routing(i, self.systems[i].demands[0])
                     self.tau = self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0
                     self.t_processes[i] = self.t_max + 1
@@ -197,22 +197,22 @@ class QueueingNetwork:
                 for system in self.systems:
                     system.update_time_states(self.t_now)
                 
-                # print('------')
-                # print(f'tau for {self.b} = {self.tau}')
-                # for i in range(self.L + 1):
-                #     print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization()]}')
-                # print('------\n')
+                print('------')
+                print(f'tau for {self.b} = {self.tau}')
+                for i in range(self.L + 1):
+                    print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization_time_states()]}')
+                print('------\n')
 
                 self.t_old = self.t_now
                 self.t_now = min(self.t_processes + [system.be_destroyed_at for system in self.systems[1:]])
 
         print(f'\nВсего требований: {self.total_demands}\nОбслужено {self.total_demands - self.lost_demands}, потеряно {self.lost_demands}')
-        print(f'tau = {self.tau_summarized / self.count_states}')
+        print(f'tau = {self.tau_summarized / self.count_states if self.tau_summarized != 0 else self.tau}')
         print(f'p_lost = {self.lost_demands / self.total_demands}')
         print("p:")
         for i in range(self.L + 1):
-            print(f'\tСистема {i}:{sum([state / self.t_max for state in self.systems[i].deserialization()])}')
-            print(f'\tСистема {i}:\n\t{[state / self.t_max for state in self.systems[i].deserialization()]}\n')
+            print(f'\tСистема {i}:{sum([state / self.t_max for state in self.systems[i].deserialization_time_states()])}')
+            print(f'\tСистема {i}:\n\t{[state / self.t_max for state in self.systems[i].deserialization_time_states()]}\n')
 
 
 
