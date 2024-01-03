@@ -39,6 +39,8 @@ class QueueingNetwork:
         self.tau = 0
         self.tau_threshold = tau_threshold
 
+        self.save()
+
     def init_systems(self):
         systems = [QueueingSystem(id=0, server_cnt=0, mu=0, gamma=0, time_states=[0])] # источник
         for system in range(1, self.L + 1):
@@ -107,12 +109,16 @@ class QueueingNetwork:
         # print(f'\tтребование {demand.id} переходит из {i} в {j}')
 
         if i != 0:
+            self.systems[i].load()
             self.systems[i].update_time_states(self.t_now)
             self.systems[i].demands.remove(demand)
+            self.systems[i].save()
             # print(f'\tтребования в {i}: {self.systems[i].current_demands()}')
         if j != 0:
+            self.systems[j].load()
             self.systems[j].update_time_states(self.t_now)
             self.systems[j].demands.append(demand)
+            self.systems[j].save()
             # print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
         else:
             self.serviced_demands += 1
@@ -124,13 +130,14 @@ class QueueingNetwork:
         self.theta = np.copy(self.initial_theta)
         for system in self.systems[1:]:
             # print(system.gamma)
+            system.load()
             system.be_destroyed_at = self.t_now + system.destroy_time()
+            system.save()
 
 
     def save(self):
         with open(f'network.pickle', 'wb') as f:
             pickle.dump({
-                't_max' : self.t_max,
                 'L' : self.L,
                 'lambda_0' : self.lambda_0,
                 'theta' : self.theta,
@@ -138,9 +145,7 @@ class QueueingNetwork:
                 'mu' : self.mu,
                 'gamma' : self.gamma,
                 'systems' : self.systems,
-                't_now' : self.t_now,
                 't_old' : self.t_old,
-                'indicator' : self.indicator,
                 't_processes' : self.t_processes,
                 'serviced_demands' : self.serviced_demands,
                 'lost_demands' : self.lost_demands,
@@ -154,9 +159,8 @@ class QueueingNetwork:
             }, f)
     
     def load(self):
-        with open(f'system_{self.id}.pickle', 'rb') as f:
+        with open(f'network.pickle', 'rb') as f:
             data = pickle.load(f)
-            self.t_max = data['t_max']
             self.L = data['L']
             self.lambda_0 = data['lambda_0']
             self.theta = data['theta']
@@ -164,9 +168,7 @@ class QueueingNetwork:
             self.mu = data['mu']
             self.gamma = data['gamma']
             self.systems = data['systems']
-            self.t_now = data['t_now']
             self.t_old = data['t_old']
-            self.indicator = data['indicator']
             self.t_processes = data['t_processes']
             self.serviced_demands = data['serviced_demands']
             self.lost_demands = data['lost_demands']
@@ -183,9 +185,12 @@ class QueueingNetwork:
         demand_id = 0
         while self.t_now < self.t_max:
             print(f'{self.t_now}')
-            [print(f'{system.id}\n\t{system.deserialization_time_states()}\n\t{len(system.demands)}') for system in self.systems]
+            for system in self.systems:
+                system.load()
+                print(f'{system.id}\n\t{system.time_states}\n\t{len(system.demands)}')
             self.indicator = False
 
+            self.load()
             # генерация требования
             if (self.t_processes[0] == self.t_now):
                 self.indicator = True
@@ -198,6 +203,7 @@ class QueueingNetwork:
 
             for i in range(1, self.L + 1):
                 # начало обслуживания
+                self.systems[i].load()
                 if self.systems[i].service_flag == False and len(self.systems[i].demands) > 0:
                     self.indicator = True
                     self.systems[i].service_flag = True
@@ -236,6 +242,8 @@ class QueueingNetwork:
                     self.count_states += 1
                     self.serviced_demands = 0
                     self.sum_life_time = 0
+                
+                self.systems[i].save()
 
             if self.tau > self.tau_threshold:
                 self.restore()
@@ -248,24 +256,32 @@ class QueueingNetwork:
             if not self.indicator:
                 # статистика
                 for system in self.systems:
+                    system.load()
                     system.update_time_states(self.t_now)
+                    system.save()
                 
                 print('------')
                 print(f'tau for {self.b} = {self.tau}')
                 for i in range(self.L + 1):
-                    print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].deserialization_time_states()]}')
+                    self.systems[i].load()
+                    print(f'Система {i}:\n{[state / self.t_max for state in self.systems[i].time_states]}')
                 print('------\n')
 
                 self.t_old = self.t_now
                 self.t_now = min(self.t_processes + [system.be_destroyed_at for system in self.systems[1:]])
+            
+            self.save()
 
+
+        self.load()
         print(f'\nВсего требований: {self.total_demands}\nОбслужено {self.total_demands - self.lost_demands}, потеряно {self.lost_demands}')
         print(f'tau = {self.tau_summarized / self.count_states if self.tau_summarized != 0 else self.tau}')
         print(f'p_lost = {self.lost_demands / self.total_demands}')
         print("p:")
         for i in range(self.L + 1):
-            print(f'\tСистема {i}:{sum([state / self.t_max for state in self.systems[i].deserialization_time_states()])}')
-            print(f'\tСистема {i}:\n\t{[state / self.t_max for state in self.systems[i].deserialization_time_states()]}\n')
+            self.systems[i].load()
+            print(f'\tСистема {i}:{sum([state / self.t_max for state in self.systems[i].time_states])}')
+            print(f'\tСистема {i}:\n\t{[state / self.t_max for state in self.systems[i].time_states]}\n')
 
 
 
