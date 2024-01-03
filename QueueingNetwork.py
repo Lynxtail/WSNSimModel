@@ -1,5 +1,6 @@
 from math import log
 import numpy as np
+import pickle
 from Systems import QueueingSystem
 from Demand import Demand
 
@@ -13,6 +14,8 @@ class QueueingNetwork:
         self.initial_theta = theta
         self.mu = mu
         self.gamma = gamma
+
+        self.systems = tuple()
         
         self.t_now = 0
         self.t_old = 0
@@ -37,13 +40,10 @@ class QueueingNetwork:
         self.tau_threshold = tau_threshold
 
     def init_systems(self):
-        systems = [QueueingSystem(0, 0, 0, 0)] # источник
-        systems[0].serialization_time_states([0])
+        systems = [QueueingSystem(id=0, server_cnt=0, mu=0, gamma=0, time_states=[0])] # источник
         for system in range(1, self.L + 1):
-            systems.append(QueueingSystem(system, 1, self.mu[system - 1], self.gamma[system - 1]))          
-            systems[-1].serialization_time_states([0])
+            systems.append(QueueingSystem(id=system, server_cnt=1, mu=self.mu[system - 1], gamma=self.gamma[system - 1], time_states=[0]))          
             systems[-1].be_destroyed_at = self.t_now + systems[-1].destroy_time()
-            # print(systems[-1].be_destroyed_at)
         self.systems = tuple(systems)
 
     def arrival_time(self):
@@ -125,6 +125,59 @@ class QueueingNetwork:
         for system in self.systems[1:]:
             # print(system.gamma)
             system.be_destroyed_at = self.t_now + system.destroy_time()
+
+
+    def save(self):
+        with open(f'network.pickle', 'wb') as f:
+            pickle.dump({
+                't_max' : self.t_max,
+                'L' : self.L,
+                'lambda_0' : self.lambda_0,
+                'theta' : self.theta,
+                'initial_theta' : self.initial_theta,
+                'mu' : self.mu,
+                'gamma' : self.gamma,
+                'systems' : self.systems,
+                't_now' : self.t_now,
+                't_old' : self.t_old,
+                'indicator' : self.indicator,
+                't_processes' : self.t_processes,
+                'serviced_demands' : self.serviced_demands,
+                'lost_demands' : self.lost_demands,
+                'total_demands' : self.total_demands,
+                'sum_life_time' : self.sum_life_time,
+                'b' : self.b,
+                'count_states' : self.count_states,
+                'tau_summarized' : self.tau_summarized,
+                'tau' : self.tau,
+                'tau_threshold' : self.tau_threshold
+            }, f)
+    
+    def load(self):
+        with open(f'system_{self.id}.pickle', 'rb') as f:
+            data = pickle.load(f)
+            self.t_max = data['t_max']
+            self.L = data['L']
+            self.lambda_0 = data['lambda_0']
+            self.theta = data['theta']
+            self.initial_theta = data['initial_theta']
+            self.mu = data['mu']
+            self.gamma = data['gamma']
+            self.systems = data['systems']
+            self.t_now = data['t_now']
+            self.t_old = data['t_old']
+            self.indicator = data['indicator']
+            self.t_processes = data['t_processes']
+            self.serviced_demands = data['serviced_demands']
+            self.lost_demands = data['lost_demands']
+            self.total_demands = data['total_demands']
+            self.sum_life_time = data['sum_life_time']
+            self.b = data['b']
+            self.count_states = data['count_states']
+            self.tau_summarized = data['tau_summarized']
+            self.tau = data['tau']
+            self.tau_threshold   = data['tau_threshold']
+
 
     def simulation(self):
         demand_id = 0
