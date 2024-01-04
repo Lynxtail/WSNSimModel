@@ -40,11 +40,11 @@ class QueueingNetwork:
 
 
     def init_systems(self):
-        systems = [QueueingSystem(id=0, server_cnt=0, mu=0, gamma=0, time_states=[0])] # источник
-        for system in range(1, self.L + 1):
-            systems.append(QueueingSystem(id=system, server_cnt=1, mu=self.mu[system - 1], gamma=self.gamma[system - 1], time_states=[0]))          
-            systems[-1].be_destroyed_at = self.t_now + systems[-1].destroy_time()
-            systems[-1].save()
+        QueueingSystem(id=0, server_cnt=0, mu=0, gamma=0, time_states=[0]).save() # источник
+        for i in range(1, self.L + 1):
+            system = QueueingSystem(id=i, server_cnt=1, mu=self.mu[i - 1], gamma=self.gamma[i - 1], time_states=[0])
+            system.be_destroyed_at = self.t_now + system.destroy_time()
+            system.save()
         # self.systems = tuple(systems)
 
     def arrival_time(self):
