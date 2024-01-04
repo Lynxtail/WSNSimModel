@@ -3,7 +3,7 @@ from math import log, prod
 from numpy import random
 
 class QueueingSystem:
-    def __init__(self, system_id:int, server_cnt:int, mu:float, gamma:float, state:bool=True, k_mu:int=1, k_gamma:int=1, time_states:list=[0]) -> None:
+    def __init__(self, system_id:int=0, server_cnt:int=0, mu:float=0, gamma:float=0, state:bool=True, k_mu:int=1, k_gamma:int=1, time_states:list=[0]) -> None:
         self.id = system_id
         self.server_cnt = server_cnt
         self.mu = mu
