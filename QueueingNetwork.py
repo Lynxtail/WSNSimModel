@@ -39,7 +39,6 @@ class QueueingNetwork:
         self.tau = 0
         self.tau_threshold = tau_threshold
 
-        self.save()
 
     def init_systems(self):
         systems = [QueueingSystem(id=0, server_cnt=0, mu=0, gamma=0, time_states=[0])] # источник
@@ -96,7 +95,7 @@ class QueueingNetwork:
                     if not all(visited): return False
         return all(visited) if visited else False
 
-    def routing(self, i:int, demand:Demand):
+    def routing(self, i:int, demand:tuple):
         r = np.random.random()
         tmp_sum = 0
         j = 0
@@ -111,18 +110,19 @@ class QueueingNetwork:
         if i != 0:
             self.systems[i].load()
             self.systems[i].update_time_states(self.t_now)
-            self.systems[i].demands.remove(demand)
+            self.systems[i].demands.pop(demand[0])
             self.systems[i].save()
             # print(f'\tтребования в {i}: {self.systems[i].current_demands()}')
         if j != 0:
             self.systems[j].load()
             self.systems[j].update_time_states(self.t_now)
-            self.systems[j].demands.append(demand)
+            # self.systems[j].demands.append(demand)
+            self.systems[j].demands[demand[0]] = demand[1]
             self.systems[j].save()
             # print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
         else:
             self.serviced_demands += 1
-            self.sum_life_time += self.t_now - demand.arrival
+            self.sum_life_time += self.t_now - demand[1]
     
     def restore(self):
         print(f'Сеть восстанавливается при\nb: {self.b}')
@@ -134,53 +134,6 @@ class QueueingNetwork:
             system.be_destroyed_at = self.t_now + system.destroy_time()
             system.save()
 
-
-    def save(self):
-        with open(f'network.pickle', 'wb') as f:
-            pickle.dump({
-                'L' : self.L,
-                'lambda_0' : self.lambda_0,
-                'theta' : self.theta,
-                'initial_theta' : self.initial_theta,
-                'mu' : self.mu,
-                'gamma' : self.gamma,
-                'systems' : self.systems,
-                't_old' : self.t_old,
-                't_processes' : self.t_processes,
-                'serviced_demands' : self.serviced_demands,
-                'lost_demands' : self.lost_demands,
-                'total_demands' : self.total_demands,
-                'sum_life_time' : self.sum_life_time,
-                'b' : self.b,
-                'count_states' : self.count_states,
-                'tau_summarized' : self.tau_summarized,
-                'tau' : self.tau,
-                'tau_threshold' : self.tau_threshold
-            }, f)
-    
-    def load(self):
-        with open(f'network.pickle', 'rb') as f:
-            data = pickle.load(f)
-            self.L = data['L']
-            self.lambda_0 = data['lambda_0']
-            self.theta = data['theta']
-            self.initial_theta = data['initial_theta']
-            self.mu = data['mu']
-            self.gamma = data['gamma']
-            self.systems = data['systems']
-            self.t_old = data['t_old']
-            self.t_processes = data['t_processes']
-            self.serviced_demands = data['serviced_demands']
-            self.lost_demands = data['lost_demands']
-            self.total_demands = data['total_demands']
-            self.sum_life_time = data['sum_life_time']
-            self.b = data['b']
-            self.count_states = data['count_states']
-            self.tau_summarized = data['tau_summarized']
-            self.tau = data['tau']
-            self.tau_threshold   = data['tau_threshold']
-
-
     def simulation(self):
         demand_id = 0
         while self.t_now < self.t_max:
@@ -190,13 +143,12 @@ class QueueingNetwork:
                 print(f'{system.id}\n\t{system.time_states}\n\t{len(system.demands)}')
             self.indicator = False
 
-            self.load()
             # генерация требования
             if (self.t_processes[0] == self.t_now):
                 self.indicator = True
                 self.t_processes[0] = self.t_now + self.arrival_time()
                 demand_id += 1
-                demand = Demand(demand_id, self.t_now)
+                demand = (demand_id, self.t_now)
                 self.total_demands += 1
                 print(f'\tтребование {demand_id} поступило в сеть')
                 self.routing(0, demand)
@@ -270,10 +222,8 @@ class QueueingNetwork:
                 self.t_old = self.t_now
                 self.t_now = min(self.t_processes + [system.be_destroyed_at for system in self.systems[1:]])
             
-            self.save()
 
 
-        self.load()
         print(f'\nВсего требований: {self.total_demands}\nОбслужено {self.total_demands - self.lost_demands}, потеряно {self.lost_demands}')
         print(f'tau = {self.tau_summarized / self.count_states if self.tau_summarized != 0 else self.tau}')
         print(f'p_lost = {self.lost_demands / self.total_demands}')
