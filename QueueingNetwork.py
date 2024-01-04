@@ -166,14 +166,14 @@ class QueueingNetwork:
                         system.service_flag = True
                         self.t_processes[i] = self.t_now + system.service_time()
                         fk = next(iter(system.demands))
-                        print(f'\tтребование {system.demands[fk]} начало обслуживаться в системе {i}')
+                        print(f'\tтребование {fk} начало обслуживаться в системе {i}')
 
                     # завершение обслуживания
                     if self.t_processes[i] == self.t_now:
                         self.indicator = True
                         system.service_flag = False
                         fk = next(iter(system.demands))
-                        print(f'\tтребование {system.demands[fk]} закончило обслуживаться в системе {i}')
+                        print(f'\tтребование {fk} закончило обслуживаться в системе {i}')
                         self.routing(i, (fk, system.demands[fk]))
                         self.tau = self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0
                         self.t_processes[i] = self.t_max + 1
