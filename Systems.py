@@ -22,8 +22,13 @@ class QueueingSystem:
         # длительности пребывания в состояних
         self.time_states = time_states
 
-        self.save()
     
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
     def service_time(self):
         return -log(prod([random.random() for _ in range(self.k_mu)])) / self.mu
     
