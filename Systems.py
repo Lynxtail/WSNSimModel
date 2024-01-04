@@ -1,11 +1,10 @@
 import pickle
 from math import log, prod
 from numpy import random
-from Demand import Demand
 
 class QueueingSystem:
-    def __init__(self, id:int, server_cnt:int, mu:float, gamma:float, state:bool=True, k_mu:int=1, k_gamma:int=1, time_states:list=[0]) -> None:
-        self.id = id
+    def __init__(self, system_id:int, server_cnt:int, mu:float, gamma:float, state:bool=True, k_mu:int=1, k_gamma:int=1, time_states:list=[0]) -> None:
+        self.id = system_id
         self.server_cnt = server_cnt
         self.mu = mu
         self.k_mu = k_mu
@@ -16,7 +15,8 @@ class QueueingSystem:
         self.state = state # работоспособна
 
         self.service_flag = False # свободна
-        self.demands = list()
+        self.demands = list() # [(id, arrival_time), ...]
+        self.demands = dict() # {'id' : arrival_time, ...]
         self.last_state = 0
 
         # длительности пребывания в состояних
