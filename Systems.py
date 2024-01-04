@@ -68,7 +68,7 @@ class QueueingSystem:
             self.last_state = data['last_state']              
         
     def current_demands(self):
-        return [item.id for item in self.demands]
+        return [item for item in self.demands.keys()]
     
     def update_time_states(self, t_now:float):
         if len(self.time_states) <= len(self.demands) + 1:

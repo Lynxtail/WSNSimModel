@@ -40,9 +40,9 @@ class QueueingNetwork:
 
 
     def init_systems(self):
-        QueueingSystem(id=0, server_cnt=0, mu=0, gamma=0, time_states=[0]).save() # источник
+        QueueingSystem(system_id=0, server_cnt=0, mu=0, gamma=0, time_states=[0]).save() # источник
         for i in range(1, self.L + 1):
-            system = QueueingSystem(id=i, server_cnt=1, mu=self.mu[i - 1], gamma=self.gamma[i - 1], time_states=[0])
+            system = QueueingSystem(system_id=i, server_cnt=1, mu=self.mu[i - 1], gamma=self.gamma[i - 1], time_states=[0])
             system.be_destroyed_at = self.t_now + system.destroy_time()
             system.save()
         # self.systems = tuple(systems)
@@ -213,7 +213,7 @@ class QueueingNetwork:
                     with QueueingSystem(system_id=i) as system:
                         system.load()
                         system.update_time_states(self.t_now)
-                        systems_destruction[i] = system.be_destroyed_at
+                        systems_destruction[i - 1] = system.be_destroyed_at
                         system.save()
                 
                 print('------')
