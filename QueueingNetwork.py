@@ -1,5 +1,7 @@
 from math import log
 import numpy as np
+import os
+import gc
 from Systems import QueueingSystem
 
 
@@ -40,6 +42,9 @@ class QueueingNetwork:
 
 
     def init_systems(self):
+        for item in os.listdir():
+            if "system" in item:
+                os.remove(item)
         QueueingSystem(system_id=0, server_cnt=0, mu=0, gamma=0, time_states=[0]).save() # источник
         for i in range(1, self.L + 1):
             system = QueueingSystem(system_id=i, server_cnt=1, mu=self.mu[i - 1], gamma=self.gamma[i - 1], time_states=[0])
@@ -108,19 +113,21 @@ class QueueingNetwork:
         # print(f'\tтребование {demand.id} переходит из {i} в {j}')
 
         if i != 0:
-            with QueueingSystem(system_id=i) as system_i:
-                system_i.load()
-                system_i.update_time_states(self.t_now)
-                system_i.demands.pop(demand[0])
-                system_i.save()
+            system_i = self.get_system_data(i)
+            system_i.update_time_states(self.t_now)
+            system_i.demands.pop(demand[0])
+            system_i.save()
+            del system_i
+            gc.collect()
             # print(f'\tтребования в {i}: {self.systems[i].current_demands()}')
         if j != 0:
-            with QueueingSystem(system_id=j) as system_j:
-                system_j.load()
-                system_j.update_time_states(self.t_now)
+            system_j = self.get_system_data(j)
+            system_j.update_time_states(self.t_now)
                 # self.systems[j].demands.append(demand)
-                system_j.demands[demand[0]] = demand[1]
-                system_j.save()
+            system_j.demands[demand[0]] = demand[1]
+            system_j.save()
+            del system_j
+            gc.collect()
                 # print(f'\tтребования в {j}: {self.systems[j].current_demands()}')
         else:
             self.serviced_demands += 1
@@ -132,19 +139,32 @@ class QueueingNetwork:
         self.theta = np.copy(self.initial_theta)
         for i in range(1, self.L + 1):
             # print(system.gamma)
-            with QueueingSystem(system_id=i) as system:
-                system.load()
-                system.be_destroyed_at = self.t_now + system.destroy_time()
-                system.save()
+            system = self.get_system_data(i)
+            system.be_destroyed_at = self.t_now + system.destroy_time()
+            system.save()
+            del system
+            gc.collect()
+
+
+    def get_system_data(self, system_id:int, *args) -> QueueingSystem:
+        system = QueueingSystem(system_id=system_id)
+        system.load()
+        return system
+        # if args...
+
+    def put_system_data(self, system_id:int):
+        system = QueueingSystem(system_id=system_id)
+        system.save()
 
     def simulation(self):
         demand_id = 0
         while self.t_now < self.t_max:
             print(f'{self.t_now}')
             for i in range(1, self.L + 1):
-                with QueueingSystem(system_id=i) as system:
-                    system.load()
-                    print(f'{system.id}\n\t{system.time_states}\n\t{len(system.demands)}')
+                system = self.get_system_data(i)
+                print(f'{system.id}\n\t{system.time_states}\n\t{len(system.demands)}')
+                del system
+                gc.collect()
             self.indicator = False
 
             # генерация требования
@@ -159,44 +179,46 @@ class QueueingNetwork:
 
             for i in range(1, self.L + 1):
                 # начало обслуживания
-                with QueueingSystem(system_id=i) as system:
-                    system.load()
-                    if system.service_flag == False and len(system.demands) > 0:
-                        self.indicator = True
-                        system.service_flag = True
-                        self.t_processes[i] = self.t_now + system.service_time()
-                        fk = next(iter(system.demands))
-                        print(f'\tтребование {fk} начало обслуживаться в системе {i}')
+                system = self.get_system_data(i)
 
-                    # завершение обслуживания
-                    if self.t_processes[i] == self.t_now:
-                        self.indicator = True
-                        system.service_flag = False
-                        fk = next(iter(system.demands))
-                        print(f'\tтребование {fk} закончило обслуживаться в системе {i}')
-                        self.routing(i, (fk, system.demands[fk]))
-                        self.tau = self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0
-                        self.t_processes[i] = self.t_max + 1
+                if system.service_flag == False and len(system.demands) > 0:
+                    self.indicator = True
+                    system.service_flag = True
+                    self.t_processes[i] = self.t_now + system.service_time()
+                    fk = next(iter(system.demands))
+                    print(f'\tтребование {fk} начало обслуживаться в системе {i}')
 
-                    # выход из строя
-                    if system.be_destroyed_at == self.t_now:
-                        print(f'Система {i} выходит из строя')
-                        system.state = False
-                        self.lost_demands += len(system.demands)
-                        print(system.current_demands())
-                        system.demands.clear()
-                        self.b[i - 1] = 0
-                        system.be_destroyed_at = self.t_max + 1
-                        self.t_processes[i] = self.t_max + 1
-                        self.theta = self.change_theta()
-                        if not self.check_matrix():
-                            self.restore()
-                        self.tau_summarized += self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0
-                        self.count_states += 1
-                        self.serviced_demands = 0
-                        self.sum_life_time = 0
-                    
-                    system.save()
+                # завершение обслуживания
+                if self.t_processes[i] == self.t_now:
+                    self.indicator = True
+                    system.service_flag = False
+                    fk = next(iter(system.demands))
+                    print(f'\tтребование {fk} закончило обслуживаться в системе {i}')
+                    self.routing(i, (fk, system.demands[fk]))
+                    self.tau = self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0
+                    self.t_processes[i] = self.t_max + 1
+
+                # выход из строя
+                if system.be_destroyed_at == self.t_now:
+                    print(f'Система {i} выходит из строя')
+                    system.state = False
+                    self.lost_demands += len(system.demands)
+                    print(system.current_demands())
+                    system.demands.clear()
+                    self.b[i - 1] = 0
+                    system.be_destroyed_at = self.t_max + 1
+                    self.t_processes[i] = self.t_max + 1
+                    self.theta = self.change_theta()
+                    if not self.check_matrix():
+                        self.restore()
+                    self.tau_summarized += self.sum_life_time / self.serviced_demands if self.serviced_demands != 0 else 0
+                    self.count_states += 1
+                    self.serviced_demands = 0
+                    self.sum_life_time = 0
+                
+                system.save()
+                del system
+                gc.collect()
 
             if self.tau > self.tau_threshold:
                 self.restore()
@@ -210,18 +232,21 @@ class QueueingNetwork:
                 # статистика
                 systems_destruction = [0]*self.L
                 for i in range(1, self.L + 1):
-                    with QueueingSystem(system_id=i) as system:
-                        system.load()
-                        system.update_time_states(self.t_now)
-                        systems_destruction[i - 1] = system.be_destroyed_at
-                        system.save()
+                    system = self.get_system_data(i)
+                    system.update_time_states(self.t_now)
+                    systems_destruction[i - 1] = system.be_destroyed_at
+                    system.save()
+                    
+                    del system
+                    gc.collect()
                 
                 print('------')
                 print(f'tau for {self.b} = {self.tau}')
                 for i in range(self.L + 1):
-                    with QueueingSystem(system_id=i) as system:
-                        system.load()
-                        print(f'Система {i}:\n{[state / self.t_max for state in system.time_states]}')
+                    system = self.get_system_data(i)
+                    print(f'Система {i}:\n{[state / self.t_max for state in system.time_states]}')
+                    del system
+                    gc.collect()
                 print('------\n')
 
                 self.t_old = self.t_now
@@ -234,9 +259,12 @@ class QueueingNetwork:
         print(f'p_lost = {self.lost_demands / self.total_demands}')
         print("p:")
         for i in range(self.L + 1):
+            system = self.get_system_data(i)
             system.load()
             print(f'\tСистема {i}:{sum([state / self.t_max for state in system.time_states])}')
             print(f'\tСистема {i}:\n\t{[state / self.t_max for state in system.time_states]}\n')
+            del system
+            gc.collect()
 
 
 
